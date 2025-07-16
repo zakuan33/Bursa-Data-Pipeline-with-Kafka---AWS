@@ -1,0 +1,45 @@
+def GoldTranform (glueContext, dfc) -> DynamicFrameCollection:
+    
+    from pyspark.sql.functions import regexp_extract, col, regexp_replace
+    from awsglue.dynamicframe import DynamicFrame
+    
+    # Select the first (or specific) DynamicFrame from the collection
+    dyf = dfc.select(list(dfc.keys())[0])
+    df = dyf.toDF()
+    
+    # Gold-level transformations
+    gold_df = (
+        df.withColumn("BUY_PRICE", regexp_extract(col("BUY (QTY)"), r"([\d.]+)", 1).cast("double"))
+          .withColumn("BUY_QTY", regexp_extract(col("BUY (QTY)"), r"\((\d+)\)", 1).cast("int"))
+          .withColumn("SELL_PRICE", regexp_extract(col("SELL (QTY)"), r"([\d.]+)", 1).cast("double"))
+          .withColumn("SELL_QTY", regexp_extract(col("SELL (QTY)"), r"\((\d+)\)", 1).cast("int"))
+          .withColumn("SPREAD", (col("HIGH") - col("LOW")).cast("double"))
+          .withColumn("DELTA", (col("PRICE") - col("CLOSE")).cast("double"))
+          .withColumn("PCT_CHANGE", regexp_replace(col("%chg"), "%", "").cast("double"))
+          .withColumn("CASHTAG", regexp_replace(col("cashtag"), "\\$", ""))
+          # use .select() to explicitly define the final schema
+          .select(
+              "CASHTAG",
+              "NAME",
+              "PRICE",
+              "CHG",
+              "VOLUME",
+              "BUY_PRICE",
+              "BUY_QTY",
+              "SELL_PRICE",
+              "SELL_QTY",
+              "SPREAD",
+              "DELTA",
+              "PCT_CHANGE"
+          )
+    )
+    
+    # Convert back to DynamicFrame
+    gold_dyf = DynamicFrame.fromDF(gold_df, glueContext, "gold_dyf")
+    
+    # Glue Studio expects a DynamicFrameCollection
+    return DynamicFrameCollection({"CustomTransform0": gold_dyf}, glueContext)
+
+
+
+

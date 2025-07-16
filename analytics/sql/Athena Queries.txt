@@ -1,0 +1,27 @@
+--- Top Movers by % Change
+SELECT cashtag, name, pct_change
+FROM "bursa_market_share"."bursa_gold"
+ORDER BY pct_change DESC
+LIMIT 10;
+
+--Most Active by Volume
+SELECT cashtag, name, SUM(volume) as total_volume
+FROM "bursa_market_share"."bursa_gold"
+GROUP BY cashtag, name
+ORDER BY total_volume DESC;
+
+--Stocks with Big Spread (Volatile)
+SELECT cashtag, spread
+FROM "bursa_market_share"."bursa_gold"
+WHERE spread > 0.5
+ORDER BY spread DESC;
+
+-- Buy/Sell Pressure Analysis
+SELECT 
+  cashtag,
+  AVG(buy_qty) as avg_buy_qty,
+  AVG(sell_qty) as avg_sell_qty,
+  AVG(buy_qty) - AVG(sell_qty) AS pressure_score
+FROM "bursa_market_share"."bursa_gold"
+GROUP BY cashtag
+ORDER BY pressure_score DESC;

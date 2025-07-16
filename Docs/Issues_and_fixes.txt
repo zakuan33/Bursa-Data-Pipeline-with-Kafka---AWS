@@ -1,0 +1,106 @@
+# Issues_and_fixes.txt
+
+# -------------------------------------------------------
+# SETUP ISSUES & FIXES – Kafka, Docker, AWS Glue
+# -------------------------------------------------------
+
+# ---------------------------------
+# Kafka KRaft Mode (v4.0.0)
+# ---------------------------------
+
+# 1. Error: Missing advertised.listeners
+# → Fix: Add both listeners in server.properties
+
+listeners=PLAINTEXT://0.0.0.0:9092
+advertised.listeners=PLAINTEXT://<PUBLIC_IP>:9092
+
+# 2. Port not reachable from outside EC2
+# → Fix: Update EC2 Security Group Inbound Rules
+
+#   Type: Custom TCP
+#   Port: 9092-9093
+#   Source: 0.0.0.0/0 (or your IP)
+
+# 3. Kafka won't start after restart
+# → Fix: Clean logs and reformat
+
+rm -rf /tmp/kraft-combined-logs
+bin/kafka-storage.sh format -t <UUID> -c config/kraft/server.properties
+
+# ---------------------------------
+# Docker + Kafdrop
+# ---------------------------------
+
+# 4. Error: Kafdrop can't connect to broker
+# → Fix: Use correct public IP in KAFKA_BROKERCONNECT
+
+docker run -d -p 9000:9000 \
+  -e KAFKA_BROKERCONNECT=<PUBLIC_IP>:9092 \
+  --name kafdrop \
+  obsidiandynamics/kafdrop
+
+# Restart Kafdrop (if needed)
+
+docker stop kafdrop
+docker rm kafdrop
+
+# ---------------------------------
+# AWS Glue / S3 / ETL Pipeline
+# ---------------------------------
+
+# 5. Error: DynamicFrameCollection has no attribute toDF
+# → Fix: Extract single DynamicFrame before using .toDF()
+
+dyf = dfc.select(list(dfc.keys())[0])
+df = dyf.toDF()
+
+# 6. Error: Dropped columns still show in schema
+# → Fix: Reassign DataFrame after drop()
+
+df = df.drop("OLD_COLUMN_1", "OLD_COLUMN_2")
+
+# 7. Error: Unresolved column %chg or cashtag
+# → Fix: Use cleaned version & drop raw after transformation
+
+df = df \
+  .withColumn("PCT_CHANGE", regexp_replace(col("%chg"), "%", "").cast("double")) \
+  .withColumn("CASHTAG", regexp_replace(col("cashtag"), "\\$", "")) \
+  .drop("%chg", "cashtag")
+
+# 8. Error: S3 target doesn't accept DynamicFrameCollection
+# → Fix: Extract DynamicFrame before writing
+
+dyf = dfc.select(list(dfc.keys())[0])
+glueContext.write_dynamic_frame.from_options(
+    frame = dyf,
+    connection_type = "s3",
+    format = "json",
+    connection_options = {"path": "s3://your-bucket/gold-layer"}
+)
+
+# 9. Issue: New schema not reflected in AWS Glue Data Catalog
+# → Fix: Existing non-partitioned tables do not support schema update.
+# Solution: Manually delete the table or use partitionKeys in sink.
+
+# 10. Issue: Crawler not picking updated schema
+# → Fix: Old files in S3 (from previous runs) still contain outdated schema.
+# Solution: 
+#   - Delete/clean old S3 objects
+#   - Rerun Glue job to write fresh schema-aligned files
+#   - Then rerun the crawler
+
+# 11. Issue: Gold layer contains silver layer’s data
+# → Cause: Both silver and gold sinks used same untransformed frame
+# Solution: Ensure correct transformed DynamicFrame is passed to each sink.
+
+# 12. Issue: Repeated files/data in S3 output
+# → Cause: Glue defaults to append mode
+# Fix: Set `updateBehavior="LOG"` and configure overwrite logic via ETL
+
+# Alternative:
+# Clean target folder before writing:
+# Example:
+import boto3
+s3 = boto3.resource('s3')
+bucket = s3.Bucket('your-bucket')
+bucket.objects.filter(Prefix='gold-layer/').delete()

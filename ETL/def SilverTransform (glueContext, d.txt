@@ -1,0 +1,21 @@
+def SilverTransform (glueContext, dfc) -> DynamicFrameCollection:
+    from pyspark.sql.functions import regexp_replace, col
+    from awsglue.dynamicframe import DynamicFrame
+    
+    # Get your main DataFrame from the input DynamicFrameCollection
+    dyf = dfc.select(list(dfc.keys())[0])  # selects the first input node
+    spark_df = dyf.toDF()
+    
+    # Clean %chg and normalize cashtag
+    curated_df = spark_df \
+        .withColumn("PCT_CHANGE", regexp_replace(col("%chg"), "%", "").cast("double")) \
+        .withColumn("CASHTAG", regexp_replace(col("cashtag"), "\\$", "")) \
+        .drop("%chg") 
+    
+    # Convert back to DynamicFrame
+    curated_dyf = DynamicFrame.fromDF(curated_df, glueContext, "curated_dyf")
+    
+    # Return as DynamicFrameCollection
+    return DynamicFrameCollection({"CustomTransform0": curated_dyf}, glueContext)
+    #return curated_dyf
+    

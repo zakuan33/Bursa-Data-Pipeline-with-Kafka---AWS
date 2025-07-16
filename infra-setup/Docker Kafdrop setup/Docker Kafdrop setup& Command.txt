@@ -1,0 +1,38 @@
+# Docker Kafdrop setup& Command
+!Use WSL2 (Windows Subsystem for Linux)
+If you're using Windows 10 or 11:
+
+
+# 1. Enable WSL2 (if not already done)
+# ----------------------------------------
+# Run this from PowerShell (as Admin)
+wsl --install
+
+# ----------------------------------------
+# 2. Install Docker Engine inside WSL2 (Ubuntu)
+# ----------------------------------------
+sudo apt update
+sudo apt install docker.io -y
+sudo usermod -aG docker $USER
+
+# ----------------------------------------
+# 3. Start Kafdrop Container
+# ----------------------------------------
+docker run -d -p 9000:9000 \
+  -e KAFKA_BROKERCONNECT=<Pulic_IP>:9092 \
+  --name Kafdrop \
+  obsidiandynamics/kafdrop
+
+# ----------------------------------------
+# 🔁 4. Reuse Same Container
+# ----------------------------------------
+docker start kafdrop
+
+# ----------------------------------------
+# ⛔ 5. Stop + Remove
+# ----------------------------------------
+docker stop kafdrop
+docker rm kafdrop
+
+## Access Kafdrop UI
+Open: http://localhost:9000

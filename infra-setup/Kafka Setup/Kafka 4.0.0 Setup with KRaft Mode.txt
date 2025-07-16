@@ -1,0 +1,67 @@
+# Kafka 4.0.0 Setup with KRaft Mode (No Zookeeper)
+
+# ----------------------------------------
+# 1. Install Java 17 (required by Kafka 4.0.0)
+# ----------------------------------------
+sudo yum install java-17-amazon-corretto -y
+java -version  # Confirm it's Java 17+
+
+# ----------------------------------------
+# 2. Download & Extract Kafka
+# ----------------------------------------
+wget https://downloads.apache.org/kafka/4.0.0/kafka_2.13-4.0.0.tgz
+tar -xvf kafka_2.13-4.0.0.tgz
+cd kafka_2.13-4.0.0
+
+# ----------------------------------------
+# 3. Create KRaft Configuration
+# ----------------------------------------
+mkdir -p config/kraft
+nano config/kraft/server.properties
+# Then paste the following (replace <PRIVATE_IP> and <PUBLIC_IP>):
+
+# --- START COPY INSIDE FILE ---
+process.roles=broker,controller
+node.id=1
+controller.quorum.voters=1@<PRIVATE_IP>:9093
+
+listeners=PLAINTEXT://0.0.0.0:9092,CONTROLLER://<PRIVATE_IP>:9093
+advertised.listeners=PLAINTEXT://<PUBLIC_IP>:9092
+
+inter.broker.listener.name=PLAINTEXT
+controller.listener.names=CONTROLLER
+
+log.dirs=/tmp/kraft-combined-logs
+
+num.network.threads=3
+num.io.threads=8
+socket.send.buffer.bytes=102400
+socket.receive.buffer.bytes=102400
+socket.request.max.bytes=104857600
+log.retention.hours=168
+log.segment.bytes=1073741824
+log.retention.check.interval.ms=300000
+# --- END COPY ---
+
+# ----------------------------------------
+# 4. Format Storage (UUID is required for KRaft)
+# ----------------------------------------
+uuidgen  # Copy UUID
+# Replace <UUID> with actual UUID
+bin/kafka-storage.sh format -t <UUID> -c config/kraft/server.properties
+
+# ----------------------------------------
+# 5. Start Kafka (No ZooKeeper)
+# ----------------------------------------
+export KAFKA_HEAP_OPTS="-Xmx256M -Xms128M"
+bin/kafka-server-start.sh config/kraft/server.properties
+
+# ----------------------------------------
+# 6. Update AWS EC2 Inbound Rules
+# ----------------------------------------
+# In EC2 Security Group, add these Inbound Rules:
+# Type: Custom TCP | Port Range: 9092-9093 | Source: 0.0.0.0/0 or your IP
+
+
+
+

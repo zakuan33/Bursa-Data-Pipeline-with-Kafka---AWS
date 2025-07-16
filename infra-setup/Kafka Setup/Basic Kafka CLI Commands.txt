@@ -1,0 +1,39 @@
+# Basic Kafka CLI Commands 
+
+# -- Start Kafka Server --
+bin/kafka-server-start.sh config/kraft/server.properties
+bin/kafka-server-start.sh config/kraft/server-2.properties
+
+# -- Create a Topic --
+bin/kafka-topics.sh --create \
+  --topic demo_testing2 \
+  --bootstrap-server <PUBLIC_IP>:9092 \
+  --replication-factor 1 \
+  --partitions 1
+
+# -- List Topics --
+bin/kafka-topics.sh --list --bootstrap-server <PUBLIC_IP>:9092
+
+# -- Start a Producer --
+bin/kafka-console-producer.sh \
+  --topic demo_testing2 \
+  --bootstrap-server <PUBLIC_IP>:9092
+
+# -- Start a Consumer --
+bin/kafka-console-consumer.sh \
+  --topic demo_testing2 \
+  --bootstrap-server <PUBLIC_IP>:9092 \
+  --from-beginning
+
+# -- Clean Logs If Restarting --
+rm -rf /tmp/kraft-combined-logs
+
+# -- test connection --
+nc -zv <PUBLIC>
+
+# -- Reformat If change Controller --
+uuidgen  # Copy UUID as cluster id
+bin/kafka-storage.sh format --config config/kraft/server.properties --cluster-id <New Cluster ID> --ignore-formatted
+
+# -- Clean Logs If Restarting --
+rm -rf /tmp/kraft-combined-logs

@@ -1,0 +1,25 @@
+# AWS CLI Setup
+# 1. Install unzip and curl (if not already available)
+sudo apt update
+sudo apt install unzip curl -y
+
+# 2. Download AWS CLI v2
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+
+# 3. Install AWS CLI
+sudo ./aws/install
+
+# 4. Check version to confirm installation
+aws --version
+
+#Configure AWS CLI(run in cmd with admin access)
+aws configure
+
+# You'll be asked(create user in IAM to get your credentials):
+# AWS Access Key ID [None]: AKIA
+# AWS Secret Access Key [None]: <Your Secret>
+# Default region name [None]: ap-southeast-1
+# Default output format [None]: json
+
+
