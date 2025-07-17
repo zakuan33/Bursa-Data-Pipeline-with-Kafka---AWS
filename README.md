@@ -1,6 +1,6 @@
 # Bursa Market Share Analysis (Kafka + AWS Glue ETL)
 
-A real-time-capable batch data pipeline for analyzing Bursa stock market share, built using **Kafka**, **AWS Glue**, **S3**, and **Athena**. The pipeline collects stock data via a custom scraper, ingests it into Kafka, stores batches in S3, and processes it using a **Medallion Architecture** (Bronze → Silver → Gold).
+A real-time-capable batch data pipeline for analyzing Bursa stock market share, built using **Kafka** hosted on an **AWS EC2**  instance, processes it using **AWS Glue**,stores results in **S3** , and **Athena** for analytics. The pipeline collects market share data via a custom scraper, ingests it into Kafka, stores batches in S3, and processes it using a **Medallion Architecture** (Bronze → Silver → Gold).
 
 This project demonstrates cloud-native data engineering skills using streaming infrastructure, scalable ETL, and lakehouse querying.
 
@@ -13,6 +13,7 @@ This project demonstrates cloud-native data engineering skills using streaming i
 | **Kafka (KRaft)**  | Handles ingestion of scraped stock data; batch-oriented in this project but can be switched to real-time with minimal changes. |
 | **KRaft Mode**     | Kafka without ZooKeeper – simpler ops with controller + broker in one.  |
 | **Kafdrop**        | Open-source web UI to view Kafka topics and messages (running via Docker). |
+| **AWS EC2**        |  Ubuntu server used to deploy and manage Kafka. |
 | **AWS S3**         | Acts as the data lake, storing raw, silver, and gold layer data.        |
 | **AWS Glue**       | Serverless Spark-based ETL to clean, enrich, and transform the stock data. |
 | **AWS Athena**     | SQL interface to query cleaned data directly from S3 (gold layer).       |
@@ -23,18 +24,31 @@ This project demonstrates cloud-native data engineering skills using streaming i
 
 ## 🧱 Medallion Architecture Flow
 
-```text
-Kafka (raw stock JSON)
-   ↓
-S3 → Bronze Layer (raw NDJSON)
-   ↓
-Glue ETL Job → Silver Layer (cleaned fields)
-   ↓
-Glue ETL Job → Gold Layer (derived features like spread, pressure)
-   ↓
-Athena Query (Insights)
-```
-
+[Bursa Screener Website]
+|
+▼
+[Scraper (Python + Selenium)]
+|
+▼
+[Kafka Producer → Kafka Topic]
+| (Kafka on AWS EC2)
+▼
+[Kafka Consumer (Python)]
+|
+▼
+[Raw S3 Bucket: bursa-raw (NDJSON)]
+|
+▼
+[AWS Glue ETL Job]
+|
+├──> Curated S3 (bursa-curated)(cleaned fields)
+└──> Transformed S3 (bursa-transformed)(derived features like spread, pressure)
+|
+▼
+[AWS Athena SQL Queries(Insights)]
+|
+▼
+[CSV Insights]
 ---
 
 ## 📁 Project Structure
